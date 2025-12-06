@@ -1,11 +1,10 @@
 // src/services/api.js
 import axios from "axios";
-
 // Detect backend host dynamically for LAN access
-const host = window.location.hostname; 
-const BASE_URL = `http://${host}:8081`; // auto-connect PC IP from any device
+// Use production URL if available, otherwise use local development
+const BASE_URL = "https://clothing-ecom-backend.onrender.com";
 
-console.log("🔗 Backend URL:", BASE_URL);
+
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -52,7 +51,15 @@ export async function getProductById(id) {
 
 export async function createProduct(productData, imageFile) {
   const fd = new FormData();
-  fd.append("data", JSON.stringify(productData));
+  // Backend expects AddProductRequest: name, description, price, stock, categoryId
+  const requestData = {
+    name: productData.name,
+    description: productData.description || "",
+    price: parseFloat(productData.price) || 0,
+    stock: parseInt(productData.stock) || 0,
+    categoryId: productData.categoryId ? parseInt(productData.categoryId) : null
+  };
+  fd.append("data", JSON.stringify(requestData));
   if (imageFile) fd.append("image", imageFile);
   const res = await api.post(`/products/add`, fd, { headers: { "Content-Type": "multipart/form-data" } });
   return res.data;
@@ -60,7 +67,15 @@ export async function createProduct(productData, imageFile) {
 
 export async function updateProduct(id, productData, imageFile) {
   const fd = new FormData();
-  fd.append("data", JSON.stringify(productData));
+  // Backend expects AddProductRequest: name, description, price, stock, categoryId
+  const requestData = {
+    name: productData.name,
+    description: productData.description || "",
+    price: parseFloat(productData.price) || 0,
+    stock: parseInt(productData.stock) || 0,
+    categoryId: productData.categoryId ? parseInt(productData.categoryId) : null
+  };
+  fd.append("data", JSON.stringify(requestData));
   if (imageFile) fd.append("image", imageFile);
   const res = await api.put(`/products/${id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
   return res.data;
@@ -88,7 +103,16 @@ export async function getCategories() {
 
 export async function createCategory(category) {
   try {
-    const res = await api.post(`/categories`, category);
+    // Backend expects Category with image as base64 string (it will decode it)
+    const categoryData = {
+      name: category.name,
+      description: category.description || ""
+    };
+    // If image is provided as base64, send it
+    if (category.image) {
+      categoryData.image = category.image; // Backend expects base64 string in 'image' field
+    }
+    const res = await api.post(`/categories`, categoryData);
     return res.data;
   } catch (err) {
     console.error("createCategory error:", err.response?.status, err.response?.data);
@@ -108,7 +132,16 @@ export async function getCategoryById(id) {
 
 export async function updateCategory(id, category) {
   try {
-    const res = await api.put(`/categories/${id}`, category);
+    // Backend expects Category with image as base64 string (it will decode it)
+    const categoryData = {
+      name: category.name,
+      description: category.description || ""
+    };
+    // If image is provided as base64, send it
+    if (category.image) {
+      categoryData.image = category.image; // Backend expects base64 string in 'image' field
+    }
+    const res = await api.put(`/categories/${id}`, categoryData);
     return res.data;
   } catch (err) {
     console.error("updateCategory error:", err.response?.status, err.response?.data);
@@ -160,8 +193,15 @@ export async function deleteUser(id) {
 // ORDERS
 export async function getOrders() {
   try {
-    const res = await api.get(`/orders`);
-    return res.data;
+    // Try admin endpoint first, fallback to regular endpoint
+    try {
+      const res = await api.get(`/orders/admin/all`);
+      return res.data;
+    } catch (adminErr) {
+      // Fallback to regular endpoint (might work if admin has access)
+      const res = await api.get(`/orders`);
+      return res.data;
+    }
   } catch (err) {
     console.error("getOrders error:", err.response?.status, err.response?.data);
     throw err;
@@ -170,11 +210,127 @@ export async function getOrders() {
 
 export async function getOrderById(id) {
   try {
-    const res = await api.get(`/orders/${id}`);
-    return res.data;
+    // Try admin endpoint first, fallback to regular endpoint
+    try {
+      const res = await api.get(`/orders/admin/${id}`);
+      return res.data;
+    } catch (adminErr) {
+      // Fallback to regular endpoint (might work if admin has access)
+      const res = await api.get(`/orders/${id}`);
+      return res.data;
+    }
   } catch (err) {
     console.error("getOrderById error:", err.response?.status, err.response?.data);
     throw err;
   }
+}
+
+export async function updateOrderStatus(id, status) {
+  try {
+    const res = await api.put(`/orders/admin/${id}/status`, {
+      orderStatus: status
+    });
+    return res.data;
+  } catch (err) {
+    console.error("updateOrderStatus error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
+
+
+// HOME ADS
+export async function getHomeAds() {
+  try {
+    const res = await api.get(`/home-ads`);
+    console.log("getHomeAds response:", res.data); // Debug log
+    // Return the data, handling different response structures
+    return res.data;
+  } catch (err) {
+    console.error("getHomeAds error:", err.response?.status, err.response?.data);
+    // If it's a 404 or the endpoint doesn't exist, return empty array
+    if (err.response?.status === 404) {
+      console.warn("Home ads endpoint not found, returning empty array");
+      return [];
+    }
+    throw err;
+  }
+}
+
+export async function getHomeAdById(id) {
+  try {
+    const res = await api.get(`/home-ads/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("getHomeAdById error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
+
+// Helper to convert file to base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data:image/...;base64, prefix
+    reader.onerror = error => reject(error);
+  });
+}
+
+export async function createHomeAd(adData, imageFile) {
+  try {
+    const payload = {
+      title: adData.title,
+      type: adData.type || "",
+      redirectUrl: adData.redirectUrl || "",
+      active: adData.active !== undefined ? adData.active : true
+    };
+    
+    // If image file provided, convert to base64
+    if (imageFile) {
+      payload.imageBase64 = await fileToBase64(imageFile);
+    }
+    
+    const res = await api.post(`/home-ads`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("createHomeAd error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
+
+export async function updateHomeAd(id, adData, imageFile) {
+  try {
+    const payload = {
+      title: adData.title,
+      type: adData.type || "",
+      redirectUrl: adData.redirectUrl || "",
+      active: adData.active !== undefined ? adData.active : true
+    };
+    
+    // If image file provided, convert to base64
+    if (imageFile) {
+      payload.imageBase64 = await fileToBase64(imageFile);
+    }
+    
+    const res = await api.put(`/home-ads/${id}`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("updateHomeAd error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
+
+export async function deleteHomeAd(id) {
+  try {
+    const res = await api.delete(`/home-ads/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("deleteHomeAd error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
+
+export function getHomeAdImageUrl(id) {
+  return `${BASE_URL}/home-ads/image/${id}`;
 }
 

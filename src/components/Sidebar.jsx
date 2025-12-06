@@ -23,6 +23,7 @@ export default function Sidebar() {
 					<li><Link to="/products/new">New Product</Link></li>
 					<li><Link to="/categories">Categories</Link></li>
 					<li><Link to="/categories/new">New Category</Link></li>
+					<li><Link to="/home-ads">Home Ads</Link></li>
 					<li><Link to="/users">Users</Link></li>
 					<li><Link to="/orders">Orders</Link></li>
 				</ul>

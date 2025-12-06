@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import "../styles/admin.css";
 import { getDashboardStats } from "../services/api";
 
@@ -9,32 +10,59 @@ export default function Dashboard() {
     totalOrders: 0,
     totalRevenue: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getDashboardStats();
+      setStats(response);
+    } catch (err) {
+      console.error("Failed to load dashboard stats", err);
+      setError("Failed to load dashboard statistics. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchStats() {
-      try {
-        const response = await getDashboardStats();
-        setStats(response);
-      } catch (err) {
-        console.error("Failed to load dashboard stats");
-      }
-    }
     fetchStats();
-  }, []);
+  }, [fetchStats]);
+
+  if (loading) {
+    return (
+      <div className="admin-dashboard">
+        <div className="loading-state">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="admin-dashboard">
+        <div className="error-state">
+          <p>{error}</p>
+          <button onClick={fetchStats}>Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-dashboard">
       <h1 className="dashboard-title">Admin Dashboard</h1>
 
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+      <div className="dashboard-header">
         <div>
           <strong>Welcome, Admin</strong>
         </div>
-        <div>
-          <a href="/products"><button>Manage Products</button></a>{" "}
-          <a href="/categories"><button>Manage Categories</button></a>{" "}
-          <a href="/users"><button>Manage Users</button></a>{" "}
-          <a href="/orders"><button>Manage Orders</button></a>
+        <div className="dashboard-actions">
+          <Link to="/products"><button>Manage Products</button></Link>
+          <Link to="/categories"><button>Manage Categories</button></Link>
+          <Link to="/users"><button>Manage Users</button></Link>
+          <Link to="/orders"><button>Manage Orders</button></Link>
         </div>
       </div>
 
@@ -60,11 +88,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <section style={{marginTop:20}}>
+      <section className="quick-actions">
         <h2>Quick Actions</h2>
-        <div style={{display:'flex', gap:8}}>
-          <a href="/products/new"><button>Create Product</button></a>
-          <a href="/categories/new"><button>Create Category</button></a>
+        <div className="quick-actions-buttons">
+          <Link to="/products/new"><button>Create Product</button></Link>
+          <Link to="/categories/new"><button>Create Category</button></Link>
         </div>
       </section>
     </div>
