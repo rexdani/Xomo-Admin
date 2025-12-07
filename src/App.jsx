@@ -12,6 +12,7 @@ const ProductView = lazy(() => import("./pages/Products/ProductView"));
 const CategoryList = lazy(() => import("./pages/Categories/CategoryList"));
 const CategoryForm = lazy(() => import("./pages/Categories/CategoryForm"));
 const UserList = lazy(() => import("./pages/Users/UserList"));
+const UserView = lazy(() => import("./pages/Users/UserView"));
 const OrderList = lazy(() => import("./pages/Orders/OrderList"));
 const OrderView = lazy(() => import("./pages/Orders/OrderView"));
 const HomeAdList = lazy(() => import("./pages/HomeAds/HomeAdList"));
@@ -117,6 +118,16 @@ function App() {
           <PrivateRoute>
             <Layout>
               <LazyWrapper><UserList /></LazyWrapper>
+            </Layout>
+          </PrivateRoute>
+        } 
+      />
+      <Route 
+        path="/users/:id" 
+        element={
+          <PrivateRoute>
+            <Layout>
+              <LazyWrapper><UserView /></LazyWrapper>
             </Layout>
           </PrivateRoute>
         } 

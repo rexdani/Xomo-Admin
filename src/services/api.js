@@ -172,8 +172,15 @@ export async function getUsers() {
 
 export async function getUserById(id) {
   try {
-    const res = await api.get(`/user/${id}`);
-    return res.data;
+    // Try admin endpoint first, fallback to regular endpoint
+    try {
+      const res = await api.get(`/user/admin/${id}`);
+      return res.data;
+    } catch (adminErr) {
+      // Fallback to regular endpoint
+      const res = await api.get(`/user/${id}`);
+      return res.data;
+    }
   } catch (err) {
     console.error("getUserById error:", err.response?.status, err.response?.data);
     throw err;
@@ -186,6 +193,23 @@ export async function deleteUser(id) {
     return res.data;
   } catch (err) {
     console.error("deleteUser error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
+
+export async function updateUserRoles(id, roles) {
+  try {
+    // Try admin endpoint first
+    try {
+      const res = await api.put(`/user/admin/${id}/roles`, { roles });
+      return res.data;
+    } catch (adminErr) {
+      // Fallback to regular update endpoint
+      const res = await api.put(`/user/${id}`, { roles });
+      return res.data;
+    }
+  } catch (err) {
+    console.error("updateUserRoles error:", err.response?.status, err.response?.data);
     throw err;
   }
 }
@@ -247,9 +271,9 @@ export async function getHomeAds() {
     return res.data;
   } catch (err) {
     console.error("getHomeAds error:", err.response?.status, err.response?.data);
-    // If it's a 404 or the endpoint doesn't exist, return empty array
-    if (err.response?.status === 404) {
-      console.warn("Home ads endpoint not found, returning empty array");
+    // If it's a 404 or 401, return empty array to prevent UI breaking
+    if (err.response?.status === 404 || err.response?.status === 401) {
+      console.warn("Home ads endpoint not accessible, returning empty array");
       return [];
     }
     throw err;
