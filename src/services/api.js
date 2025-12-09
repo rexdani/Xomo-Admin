@@ -29,6 +29,46 @@ export async function getDashboardStats() {
   return res.data;
 }
 
+// AUTH - Google Login
+export async function googleLogin(credential) {
+  try {
+    // Ensure credential is a string
+    if (!credential || typeof credential !== 'string') {
+      throw new Error("Invalid credential: credential must be a non-empty string");
+    }
+    
+    console.log("Sending Google login request");
+    console.log("Credential type:", typeof credential);
+    console.log("Credential length:", credential.length);
+    
+    // Backend expects GoogleLoginRequest with idToken field
+    const payload = {
+      idToken: credential
+    };
+    
+    console.log("Request payload:", { idToken: credential.substring(0, 50) + "..." });
+    
+    const res = await api.post("/auth/google", payload);
+    
+    // Log the response for debugging
+    console.log("Google login API response:", res);
+    console.log("Response data:", res.data);
+    
+    // Return the data, or the full response if data is not available
+    return res.data || res;
+  } catch (err) {
+    console.error("Google login API error:", {
+      status: err.response?.status,
+      data: err.response?.data,
+      message: err.message
+    });
+    
+    // Re-throw with more context
+    const errorMessage = err.response?.data?.message || err.message || "Google login failed";
+    throw new Error(errorMessage);
+  }
+}
+
 // PRODUCTS
 export async function getProducts(params = {}) {
   // params: { categoryId, keyword }
