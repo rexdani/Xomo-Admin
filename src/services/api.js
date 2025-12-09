@@ -357,4 +357,31 @@ export async function deleteHomeAd(id) {
 export function getHomeAdImageUrl(id) {
   return `${BASE_URL}/home-ads/image/${id}`;
 }
+export async function getContacts() {
+  try {
+    const res = await api.get(`/contacts`);
+    return res.data;
+  } catch (err) {
+    console.error("getContacts error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
+
+// QUERIES
+export async function getQueries() {
+  try {
+    // Try /queries endpoint first, fallback to /contacts if needed
+    try {
+      const res = await api.get(`/contact`);
+      return res.data;
+    } catch (queriesErr) {
+      // Fallback to contacts endpoint if queries doesn't exist
+      const res = await api.get(`/contact`);
+      return res.data;
+    }
+  } catch (err) {
+    console.error("getQueries error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
 

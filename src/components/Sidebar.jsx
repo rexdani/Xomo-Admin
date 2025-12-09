@@ -26,6 +26,7 @@ export default function Sidebar() {
 					<li><Link to="/home-ads">Home Ads</Link></li>
 					<li><Link to="/users">Users</Link></li>
 					<li><Link to="/orders">Orders</Link></li>
+					<li><Link to="/queries">Queries</Link></li>
 				</ul>
 			</nav>
 			<div style={{padding:12, marginTop:'auto'}}>

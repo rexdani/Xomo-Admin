@@ -17,6 +17,7 @@ const OrderList = lazy(() => import("./pages/Orders/OrderList"));
 const OrderView = lazy(() => import("./pages/Orders/OrderView"));
 const HomeAdList = lazy(() => import("./pages/HomeAds/HomeAdList"));
 const HomeAdForm = lazy(() => import("./pages/HomeAds/HomeAdForm"));
+const QueryList = lazy(() => import("./pages/Queries/QueryList"));
 
 const LoadingFallback = () => (
   <div className="loading-state">Loading...</div>
@@ -178,6 +179,16 @@ function App() {
           <PrivateRoute>
             <Layout>
               <LazyWrapper><HomeAdForm edit /></LazyWrapper>
+            </Layout>
+          </PrivateRoute>
+        } 
+      />
+      <Route 
+        path="/queries" 
+        element={
+          <PrivateRoute>
+            <Layout>
+              <LazyWrapper><QueryList /></LazyWrapper>
             </Layout>
           </PrivateRoute>
         } 
