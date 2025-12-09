@@ -4,9 +4,13 @@ import { getHomeAds, deleteHomeAd } from "../../services/api";
 
 export default function HomeAdList() {
   const [ads, setAds] = useState([]);
+  const [filteredAds, setFilteredAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc");
 
   const load = useCallback(async () => {
     try {
@@ -14,20 +18,24 @@ export default function HomeAdList() {
       setError(null);
       const list = await getHomeAds();
       console.log("HomeAds response:", list);
+      let adsData = [];
       if (Array.isArray(list)) {
-        setAds(list);
+        adsData = list;
       } else if (list && Array.isArray(list.data)) {
-        setAds(list.data);
+        adsData = list.data;
       } else if (list && list.content && Array.isArray(list.content)) {
-        setAds(list.content);
+        adsData = list.content;
       } else {
         console.warn("Unexpected response format:", list);
-        setAds([]);
+        adsData = [];
       }
+      setAds(adsData);
+      setFilteredAds(adsData);
     } catch (err) {
       console.error("Failed to load home ads", err);
       setError("Failed to load home ads. Please try again.");
       setAds([]);
+      setFilteredAds([]);
     } finally {
       setLoading(false);
     }
@@ -36,6 +44,74 @@ export default function HomeAdList() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    let filtered = ads;
+    
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = ads.filter(ad => {
+        const id = String(ad.id || "");
+        const title = (ad.title || "").toLowerCase();
+        const type = (ad.type || "").toLowerCase();
+        const redirectUrl = (ad.redirectUrl || "").toLowerCase();
+        const status = ad.active ? "active" : "inactive";
+        
+        return id.includes(searchLower) ||
+               title.includes(searchLower) ||
+               type.includes(searchLower) ||
+               redirectUrl.includes(searchLower) ||
+               status.includes(searchLower);
+      });
+    }
+
+    // Apply sorting
+    if (sortField) {
+      filtered = [...filtered].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (sortField) {
+          case "title":
+            aVal = (a.title || "").toLowerCase();
+            bVal = (b.title || "").toLowerCase();
+            break;
+          case "status":
+            aVal = a.active ? 1 : 0;
+            bVal = b.active ? 1 : 0;
+            break;
+          case "id":
+            aVal = parseInt(a.id || 0);
+            bVal = parseInt(b.id || 0);
+            break;
+          case "type":
+            aVal = (a.type || "").toLowerCase();
+            bVal = (b.type || "").toLowerCase();
+            break;
+          default:
+            return 0;
+        }
+        
+        if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    
+    setFilteredAds(filtered);
+  }, [searchTerm, ads, sortField, sortDirection]);
+
+  const handleSortChange = useCallback((e) => {
+    const value = e.target.value;
+    if (value === "") {
+      setSortField(null);
+      setSortDirection("asc");
+    } else {
+      const [field, direction] = value.split("-");
+      setSortField(field);
+      setSortDirection(direction);
+    }
+  }, []);
 
   const remove = useCallback(async (id, title) => {
     if (!confirm(`Are you sure you want to delete "${title || 'this ad'}"? This action cannot be undone.`)) return;
@@ -51,8 +127,8 @@ export default function HomeAdList() {
     }
   }, [load]);
 
-  const activeCount = ads.filter(ad => ad.active).length;
-  const inactiveCount = ads.filter(ad => !ad.active).length;
+  const activeCount = filteredAds.filter(ad => ad.active).length;
+  const inactiveCount = filteredAds.filter(ad => !ad.active).length;
 
   if (loading) {
     return (
@@ -117,7 +193,44 @@ export default function HomeAdList() {
         </Link>
       </div>
 
-      {ads.length > 0 && (
+      <div style={{ marginBottom: "20px", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+        <input
+          type="text"
+          placeholder="Search ads by title, type, URL, status, or ID..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            flex: "1",
+            minWidth: "200px",
+            maxWidth: "500px",
+            padding: "10px",
+            fontSize: "14px",
+            border: "1px solid #ddd",
+            borderRadius: "4px"
+          }}
+        />
+        <select
+          value={sortField ? `${sortField}-${sortDirection}` : ""}
+          onChange={handleSortChange}
+          style={{
+            padding: "10px",
+            fontSize: "14px",
+            border: "1px solid #ddd",
+            borderRadius: "4px",
+            cursor: "pointer"
+          }}
+        >
+          <option value="">Sort by...</option>
+          <option value="title-asc">Title (A-Z)</option>
+          <option value="title-desc">Title (Z-A)</option>
+          <option value="status-desc">Status (Active First)</option>
+          <option value="status-asc">Status (Inactive First)</option>
+          <option value="id-asc">ID (Low to High)</option>
+          <option value="id-desc">ID (High to Low)</option>
+        </select>
+      </div>
+
+      {filteredAds.length > 0 && (
         <div className="stats-bar">
           <div className="stat-item">
             <span className="stat-value">{ads.length}</span>
@@ -134,25 +247,25 @@ export default function HomeAdList() {
         </div>
       )}
 
-      {ads.length === 0 ? (
+      {filteredAds.length === 0 ? (
         <div className="empty-state-modern">
           <div className="empty-icon">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <h3>No Home Ads Yet</h3>
-          <p>Get started by creating your first promotional advertisement to showcase on your homepage.</p>
-          <Link to="/home-ads/new" className="btn-primary">
+          <h3>{searchTerm ? `No ads found matching "${searchTerm}"` : "No Home Ads Yet"}</h3>
+          <p>{searchTerm ? "Try adjusting your search terms." : "Get started by creating your first promotional advertisement to showcase on your homepage."}</p>
+          {!searchTerm && <Link to="/home-ads/new" className="btn-primary">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             Create Your First Ad
-          </Link>
+          </Link>}
         </div>
       ) : (
         <div className="ads-grid-modern">
-          {ads.map(ad => (
+          {filteredAds.map(ad => (
             <div key={ad.id} className="ad-card-modern">
               <div className="ad-image-wrapper">
                 {ad.imageBase64 ? (

@@ -3,7 +3,7 @@ import axios from "axios";
 // Detect backend host dynamically for LAN access
 // Use production URL if available, otherwise use local development
 const BASE_URL = "https://clothing-ecom-backend.onrender.com";
-
+// const BASE_URL = "http://localhost:8081";
 
 
 const api = axios.create({
@@ -257,6 +257,26 @@ export async function updateOrderStatus(id, status) {
     return res.data;
   } catch (err) {
     console.error("updateOrderStatus error:", err.response?.status, err.response?.data);
+    throw err;
+  }
+}
+
+export async function getOrdersByUserId(userId) {
+  try {
+    // Try to get orders filtered by user ID
+    try {
+      const res = await api.get(`/orders/admin/user/${userId}`);
+      return res.data;
+    } catch (userOrdersErr) {
+      // Fallback: get all orders and filter by user ID
+      const allOrders = await getOrders();
+      return allOrders.filter(order => {
+        const orderUserId = order.user?.id || order.userId;
+        return orderUserId === parseInt(userId) || orderUserId === userId;
+      });
+    }
+  } catch (err) {
+    console.error("getOrdersByUserId error:", err.response?.status, err.response?.data);
     throw err;
   }
 }
