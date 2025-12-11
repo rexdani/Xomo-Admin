@@ -2,8 +2,8 @@
 import axios from "axios";
 // Detect backend host dynamically for LAN access
 // Use production URL if available, otherwise use local development
-// const BASE_URL = "https://clothing-ecom-backend.onrender.com";
-const BASE_URL = "http://localhost:8081";
+const BASE_URL = "https://clothing-ecom-backend.onrender.com";
+// const BASE_URL = "http://localhost:8081";
 
 
 const api = axios.create({
