@@ -2,8 +2,8 @@
 import axios from "axios";
 // Detect backend host dynamically for LAN access
 // Use production URL if available, otherwise use local development
-const BASE_URL = "https://clothing-ecom-backend.onrender.com";
-// const BASE_URL = "http://localhost:8081";
+// const BASE_URL = "https://clothing-ecom-backend.onrender.com";
+const BASE_URL = "http://localhost:8081";
 
 
 const api = axios.create({
@@ -141,24 +141,8 @@ export async function getCategories() {
   }
 }
 
-export async function createCategory(category) {
-  try {
-    // Backend expects Category with image as base64 string (it will decode it)
-    const categoryData = {
-      name: category.name,
-      description: category.description || ""
-    };
-    // If image is provided as base64, send it
-    if (category.image) {
-      categoryData.image = category.image; // Backend expects base64 string in 'image' field
-    }
-    const res = await api.post(`/categories`, categoryData);
-    return res.data;
-  } catch (err) {
-    console.error("createCategory error:", err.response?.status, err.response?.data);
-    throw err;
-  }
-}
+
+
 
 export async function getCategoryById(id) {
   try {
@@ -170,24 +154,27 @@ export async function getCategoryById(id) {
   }
 }
 
-export async function updateCategory(id, category) {
-  try {
-    // Backend expects Category with image as base64 string (it will decode it)
-    const categoryData = {
-      name: category.name,
-      description: category.description || ""
-    };
-    // If image is provided as base64, send it
-    if (category.image) {
-      categoryData.image = category.image; // Backend expects base64 string in 'image' field
-    }
-    const res = await api.put(`/categories/${id}`, categoryData);
-    return res.data;
-  } catch (err) {
-    console.error("updateCategory error:", err.response?.status, err.response?.data);
-    throw err;
-  }
+export async function updateCategory(id, data, imageFile) {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(data));
+  if (imageFile) formData.append("image", imageFile);
+
+  return api.put(`/categories/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
 }
+
+export async function createCategory(data, imageFile) {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(data));
+  if (imageFile) formData.append("image", imageFile);
+
+  return api.post(`/categories/add`, formData, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
+}
+
+
 
 export async function deleteCategory(id) {
   try {
