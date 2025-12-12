@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { createProduct, updateProduct, getProductById, getCategories } from "../../services/api";
 import { useNavigate, useParams, Link } from "react-router-dom";
-
+import CropperModal from "../../components/CropperModal";
 export default function ProductForm({ edit }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -13,7 +13,9 @@ export default function ProductForm({ edit }) {
   const [loading, setLoading] = useState(false);
   const [loadingProduct, setLoadingProduct] = useState(false);
   const [error, setError] = useState(null);
-
+  
+  const [tempImage, setTempImage] = useState(null);
+  const [showCropper, setShowCropper] = useState(false);
   useEffect(() => {
     let cancelled = false;
     
@@ -60,9 +62,20 @@ export default function ProductForm({ edit }) {
     setProduct(prev => ({...prev, [e.target.name]: e.target.value}));
   }, []);
 
-  const handleFile = useCallback((e) => {
-    setImageFile(e.target.files[0]);
-  }, []);
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const previewURL = URL.createObjectURL(file);
+    setTempImage(previewURL);
+    setShowCropper(true);
+  };
+
+  // When cropping is done
+  const handleCropDone = (croppedBlob) => {
+    setImageFile(croppedBlob);
+    setShowCropper(false);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -240,6 +253,15 @@ export default function ProductForm({ edit }) {
           </button>
         </Link>
       </div>
+
+      {/* Cropper Modal */}
+      {showCropper && tempImage && (
+        <CropperModal
+          imgSrc={tempImage}
+          onClose={() => setShowCropper(false)}
+          onCropDone={handleCropDone}
+        />
+      )}
     </form>
   );
 }
